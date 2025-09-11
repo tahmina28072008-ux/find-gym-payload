@@ -69,7 +69,7 @@ def webhook():
                 }
             }
 
-        elif intent_display_name == 'BookTourLocationIntent':
+       elif intent_display_name == 'BookTourLocationIntent':
             # This intent is triggered by the user selecting a gym.
             # We now only display the dates.
             
@@ -101,7 +101,7 @@ def webhook():
             }
 
         elif intent_display_name == 'BookTourDateTimeIntent':
-            # This new intent is triggered after the user selects a date.
+            # This intent is triggered after the user selects a date.
             # Now we display the time slots.
 
             time_options = [
@@ -130,6 +130,7 @@ def webhook():
                     ]
                 }
             }
+
 
     
     except Exception as e:
