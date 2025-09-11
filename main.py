@@ -70,8 +70,24 @@ def webhook():
             }
 
         elif intent_display_name == 'BookTourLocationIntent':
-            # This intent is triggered by the user selecting a gym.
-            # We now only display the date and time chips.
+            # Create a dictionary to hold gym details
+            gym_details = {
+                "Baltimore Wharf Fitness & Wellbeing Gym": {
+                    "address": "14 Baltimore Wharf, London, E14 9FT",
+                    "phone": "020 7093 0277"
+                },
+                "Shoreditch Fitness & Wellbeing Gym": {
+                    "address": "1-6 Bateman's Row, London, EC2A 3HH",
+                    "phone": "020 7739 6688"
+                },
+                "Moorgate Fitness & Wellbeing Gym": {
+                    "address": "1, Ropemaker Street, London, EC2Y 9AW",
+                    "phone": "020 7920 6200"
+                }
+            }
+
+            # Extract the gym name from the session parameters
+            gym_name = parameters.get('gym_name')
             
             # Generate dates for the next 30 days
             date_options = []
@@ -88,47 +104,30 @@ def webhook():
                 {"text": "18:30"}, {"text": "19:00"}, {"text": "19:30"}
             ]
 
-            # Combine the date and time chips into a single payload
-            combined_payload = {
-                "richContent": [
-                    [
-                        {
-                            "type": "chips",
-                            "options": date_options
-                        }
-                    ],
-                    [
-                        {
-                            "type": "info",
-                            "subtitle": "Select a time:"
-                        }
-                    ],
-                    [
-                        {
-                            "type": "chips",
-                            "options": time_options
-                        }
-                    ]
-                ]
-            }
-
-            fulfillment_response = {
-                "fulfillmentResponse": {
-                    "messages": [
-                        {"text": {"text": ["Great! Please choose a day and time to visit us."]},
-                        {"payload": combined_payload}
-                    ]
-                }
-            }
-
-        elif intent_display_name == 'CollectUserDetailsIntent':
-            # This intent is triggered after the user selects a date and time.
-            # Now, we ask for their personal details.
+            if gym_name and gym_name in gym_details:
+                details = gym_details[gym_name]
+                booking_message = (
+                    f"To Book your gym tour\n"
+                    f"at {gym_name}\n"
+                    f"{details['address']}\n"
+                    f"{details['phone']}\n\n"
+                    f"1. Enter your details\n"
+                    f"First name*\n"
+                    f"Last name*\n"
+                    f"Mobile number (UK only)*\n"
+                    f"Email*\n"
+                    f"2. Choose a day and time to visit us"
+                )
+            else:
+                booking_message = "Great! Please provide your first name, last name, mobile number, and email address to book your tour."
             
             fulfillment_response = {
                 "fulfillmentResponse": {
                     "messages": [
-                        {"text": {"text": ["Please provide your first name, last name, mobile number, and email address to book your tour."]}
+                        {"text": {"text": [booking_message]}},
+                        {"payload": {"richContent": [[{"type": "chips", "options": date_options}]]}},
+                        {"text": {"text": ["Select a time:"]}},
+                        {"payload": {"richContent": [[{"type": "chips", "options": time_options}]]}}
                     ]
                 }
             }
