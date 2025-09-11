@@ -1,10 +1,37 @@
-from flask import Flask, request, jsonify
-import json
-import os
-import requests
-from datetime import datetime, timedelta
+# webhook.py
 
+from flask import Flask, request, jsonify
+import firebase_admin
+from firebase_admin import credentials, firestore
+import logging
+import os
+import datetime
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+# Initialize Flask app
 app = Flask(__name__)
+
+# --- Firestore Connection Setup ---
+db = None
+try:
+    cred = credentials.ApplicationDefault()
+    firebase_admin.initialize_app(cred)
+    logging.info("Firestore connected using Cloud Run environment credentials.")
+    db = firestore.client()
+except ValueError:
+    try:
+        if os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'):
+            cred = credentials.Certificate(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'))
+            firebase_admin.initialize_app(cred)
+            logging.info("Firestore connected using GOOGLE_APPLICATION_CREDENTIALS.")
+            db = firestore.client()
+        else:
+            logging.warning("No GOOGLE_APPLICATION_CREDENTIALS found. Running in mock data mode.")
+    except Exception as e:
+        logging.error(f"Error initializing Firebase: {e}")
+        logging.warning("Continuing without database connection. Using mock data.")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -21,11 +48,11 @@ def webhook():
     }
 
     try:
-        # Extract intent and session parameters from the request
+        # Extract intent (if present) and session parameters
         intent_display_name = req.get("intentInfo", {}).get("displayName")
         parameters = req.get("sessionInfo", {}).get("parameters", {})
         
-        # Check if the intent is "Find a Gym"
+        # --- FindGymIntent ---
         if intent_display_name == 'FindGymIntent':
             card_text_message = {
                 "text": {
@@ -69,15 +96,16 @@ def webhook():
                 }
             }
 
+        # --- BookTourLocationIntent ---
         elif intent_display_name == 'BookTourLocationIntent':
             # This intent is triggered by the user selecting a gym.
             # We will now only display the dates.
             
             # Generate dates for the next 30 days
             date_options = []
-            today = datetime.now()
+            today = datetime.datetime.now()
             for i in range(30):
-                date = today + timedelta(days=i)
+                date = today + datetime.timedelta(days=i)
                 date_options.append({"text": date.strftime("%a %d %b")})
 
             combined_payload = {
@@ -100,6 +128,7 @@ def webhook():
                 }
             }
         
+        # --- BookTourDateTimeIntent ---
         elif intent_display_name == 'BookTourDateTimeIntent':
             # This intent is triggered after the user selects a date.
             # Now we display the time slots.
@@ -131,9 +160,9 @@ def webhook():
                 }
             }
         
+        # --- BookTourFinalIntent ---
         elif intent_display_name == 'BookTourFinalIntent':
             # This intent is triggered after the user selects both a date and time.
-            # The agent should be configured to pass date and time parameters here.
             date_param = parameters.get('date_param')
             time_param = parameters.get('time_param')
 
@@ -153,16 +182,12 @@ def webhook():
                             {"text": {"text": ["Sorry, I couldn't find the date or time. Please try again."]}}
                         ]
                     }
-                }
+                }   
 
     except Exception as e:
-        # Log any errors for debugging
-        print(f"Webhook error: {e}")
+        logging.error(f"Webhook error: {e}")
 
-    # Return the response as a JSON object
     return jsonify(fulfillment_response)
 
 if __name__ == '__main__':
-    # Use the PORT environment variable if available, otherwise default to 5000
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=5000)
