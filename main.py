@@ -121,6 +121,30 @@ def webhook():
                 }
             }
         
+        elif intent_display_name == 'BookTourFinalIntent':
+            # This intent is triggered after the user selects both a date and time.
+            # The agent should be configured to pass date and time parameters here.
+            date_param = parameters.get('date_param')
+            time_param = parameters.get('time_param')
+
+            if date_param and time_param:
+                confirmation_message = f"Thank you! Your tour has been booked for {date_param} at {time_param}."
+                fulfillment_response = {
+                    "fulfillmentResponse": {
+                        "messages": [
+                            {"text": {"text": [confirmation_message]}}
+                        ]
+                    }
+                }
+            else:
+                fulfillment_response = {
+                    "fulfillmentResponse": {
+                        "messages": [
+                            {"text": {"text": ["Sorry, I couldn't find the date or time. Please try again."]}}
+                        ]
+                    }
+                }
+
     except Exception as e:
         # Log any errors for debugging
         print(f"Webhook error: {e}")
