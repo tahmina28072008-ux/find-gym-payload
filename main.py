@@ -25,8 +25,7 @@ def webhook():
         
         # Check if the intent is "Find a Gym"
         if intent_display_name == 'FindGymIntent':
-            # Create a text message with all gym details
-            gyms_text_message = {
+            card_text_message = {
                 "text": {
                     "text": [
                         "Here are some of our nearest gyms. Which one would you like to book a tour at?\n\n"
@@ -42,8 +41,6 @@ def webhook():
                     ]
                 }
             }
-
-            # Create the rich content payload with only the chips
             chips_payload = {
                 "richContent": [
                     [
@@ -52,40 +49,22 @@ def webhook():
                             "options": [
                                 {
                                     "text": "Book your tour at Baltimore Wharf"
-                                }
-                            ]
-                        }
-                    ],
-                    [
-                        {
-                            "type": "chips",
-                            "options": [
+                                },
                                 {
                                     "text": "Book your tour at Shoreditch"
-                                }
-                            ]
-                        }
-                    ],
-                    [
-                        {
-                            "type": "chips",
-                            "options": [
+                                },
                                 {
                                     "text": "Book your tour at Moorgate"
                                 }
+                                
                             ]
                         }
                     ]
                 ]
             }
-            
-            # Create the final fulfillment response with both text and payload messages
             fulfillment_response = {
                 "fulfillmentResponse": {
-                    "messages": [
-                        gyms_text_message,
-                        {"payload": chips_payload}
-                    ]
+                    "messages": [card_text_message, {"payload": chips_payload}]
                 }
             }
 
