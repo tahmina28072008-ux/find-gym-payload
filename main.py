@@ -94,7 +94,8 @@ def webhook():
             fulfillment_response = {
                 "fulfillmentResponse": {
                     "messages": [
-                        {"text": {"text": ["Great! Please choose a day to visit us."]}, "payload": combined_payload}
+                        {"text": {"text": ["Great! Please choose a day to visit us."]}},
+                        {"payload": combined_payload}
                     ]
                 }
             }
@@ -124,7 +125,8 @@ def webhook():
             fulfillment_response = {
                 "fulfillmentResponse": {
                     "messages": [
-                        {"text": {"text": ["Now, please select a time:"], "payload": combined_payload}}
+                        {"text": {"text": ["Now, please select a time:"]}},
+                        {"payload": combined_payload}
                     ]
                 }
             }
