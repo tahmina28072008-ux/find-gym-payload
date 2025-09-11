@@ -71,8 +71,7 @@ def webhook():
 
         elif intent_display_name == 'BookTourLocationIntent':
             # This intent is triggered by the user selecting a gym.
-            # To resolve the issue of the next intent not triggering, we
-            # will now display both dates and times in a single response.
+            # We will now only display the dates.
             
             # Generate dates for the next 30 days
             date_options = []
@@ -81,7 +80,30 @@ def webhook():
                 date = today + timedelta(days=i)
                 date_options.append({"text": date.strftime("%a %d %b")})
 
-            # Generate time slots
+            combined_payload = {
+                "richContent": [
+                    [
+                        {
+                            "type": "chips",
+                            "options": date_options
+                        }
+                    ]
+                ]
+            }
+            
+            fulfillment_response = {
+                "fulfillmentResponse": {
+                    "messages": [
+                        {"text": {"text": ["Great! Please choose a day to visit us."]}},
+                        {"payload": combined_payload}
+                    ]
+                }
+            }
+        
+        elif intent_display_name == 'BookTourDateTimeIntent':
+            # This intent is triggered after the user selects a date.
+            # Now we display the time slots.
+
             time_options = [
                 {"text": "12:30"}, {"text": "13:00"}, {"text": "13:30"}, {"text": "14:00"},
                 {"text": "14:30"}, {"text": "15:00"}, {"text": "15:30"}, {"text": "16:00"},
@@ -94,18 +116,6 @@ def webhook():
                     [
                         {
                             "type": "chips",
-                            "options": date_options
-                        }
-                    ],
-                    [
-                        {
-                            "type": "info",
-                            "subtitle": "And a time:"
-                        }
-                    ],
-                    [
-                        {
-                            "type": "chips",
                             "options": time_options
                         }
                     ]
@@ -115,7 +125,7 @@ def webhook():
             fulfillment_response = {
                 "fulfillmentResponse": {
                     "messages": [
-                        {"text": {"text": ["Great! Please choose a day and time to visit us."]}},
+                        {"text": {"text": ["Now, please select a time:"]}},
                         {"payload": combined_payload}
                     ]
                 }
