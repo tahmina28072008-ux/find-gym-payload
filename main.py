@@ -22,17 +22,28 @@ def webhook():
         
         # Check if the intent is "Find a Gym"
         if intent_display_name == 'FindGymIntent':
-            # This is the custom payload for a structured list of gyms.
-            # In a real-world scenario, this data would be dynamically generated
-            # based on user location parameters received from Dialogflow.
+            # Create a text message with gym details
+            gyms_text_message = {
+                "text": {
+                    "text": [
+                        "Here are some of our nearest gyms. Which one would you like to book a tour at?\n\n"
+                        "1. Baltimore Wharf Fitness & Wellbeing Gym\n"
+                        "   14 Baltimore Wharf, London, E14 9FT\n"
+                        "   Phone: 020 7093 0277\n\n"
+                        "2. Shoreditch Fitness & Wellbeing Gym\n"
+                        "   1-6 Bateman's Row, London, EC2A 3HH\n"
+                        "   Phone: 020 7739 6688\n\n"
+                        "3. Moorgate Fitness & Wellbeing Gym\n"
+                        "   1, Ropemaker Street, London, EC2Y 9AW\n"
+                        "   Phone: 020 7920 6200\n"
+                    ]
+                }
+            }
+
+            # Create the rich content payload with only the chips
             gyms_payload = {
                 "richContent": [
                     [
-                        {
-                            "type": "info",
-                            "title": "Baltimore Wharf Fitness & Wellbeing Gym",
-                            "subtitle": "14 Baltimore Wharf, London, E14 9FT\n020 7093 0277"
-                        },
                         {
                             "type": "chips",
                             "options": [
@@ -44,11 +55,6 @@ def webhook():
                     ],
                     [
                         {
-                            "type": "info",
-                            "title": "Shoreditch Fitness & Wellbeing Gym",
-                            "subtitle": "1-6 Bateman's Row, London, EC2A 3HH\n020 7739 6688"
-                        },
-                        {
                             "type": "chips",
                             "options": [
                                 {
@@ -58,11 +64,6 @@ def webhook():
                         }
                     ],
                     [
-                        {
-                            "type": "info",
-                            "title": "Moorgate Fitness & Wellbeing Gym",
-                            "subtitle": "1, Ropemaker Street, London, EC2Y 9AW\n020 7920 6200"
-                        },
                         {
                             "type": "chips",
                             "options": [
@@ -75,11 +76,11 @@ def webhook():
                 ]
             }
             
-            # Create the final fulfillment response with the custom payload
+            # Create the final fulfillment response with both text and payload messages
             fulfillment_response = {
                 "fulfillmentResponse": {
                     "messages": [
-                        {"text": {"text": ["Here are some of our nearest gyms. Which one would you like to book a tour at?"]}},
+                        gyms_text_message,
                         {"payload": gyms_payload}
                     ]
                 }
