@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import logging
 import os
-import datetime
+from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -74,31 +74,22 @@ def webhook():
 
         # --- BookTourLocationIntent ---
         elif intent_display_name == 'BookTourLocationIntent':
-            date_options = []
-            today = datetime.datetime.now()
-            for i in range(30):
-                date = today + datetime.timedelta(days=i)
-                date_options.append({"text": date.strftime("%a %d %b")})
+            combined_options = []
+            today = datetime.now()
+            time_slots = ["12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30"]
 
-            time_options = [
-                {"text": "12:30"}, {"text": "13:00"}, {"text": "13:30"}, {"text": "14:00"},
-                {"text": "14:30"}, {"text": "15:00"}, {"text": "15:30"}, {"text": "16:00"},
-                {"text": "16:30"}, {"text": "17:00"}, {"text": "17:30"}, {"text": "18:00"},
-                {"text": "18:30"}, {"text": "19:00"}, {"text": "19:30"}
-            ]
+            for i in range(30):
+                date = today + timedelta(days=i)
+                for time in time_slots:
+                    combined_text = date.strftime("%a %d %b") + ", " + time
+                    combined_options.append({"text": combined_text})
 
             combined_payload = {
                 "richContent": [
                     [
                         {
                             "type": "chips",
-                            "options": date_options
-                        }
-                    ],
-                    [
-                        {
-                            "type": "chips",
-                            "options": time_options
+                            "options": combined_options
                         }
                     ]
                 ]
@@ -113,23 +104,14 @@ def webhook():
                 }
             }
         
-        # --- BookTourDateTimeIntent - This intent is now obsolete as the logic is merged with BookTourLocationIntent.
-        elif intent_display_name == 'BookTourDateTimeIntent':
-            fulfillment_response = {
-                "fulfillmentResponse": {
-                    "messages": [
-                        {"text": {"text": ["This intent is no longer active. Please select a date and time from the options provided previously."]}}
-                    ]
-                }
-            }
         
         # --- BookTourFinalIntent ---
         elif intent_display_name == 'BookTourFinalIntent':
-            date_param = parameters.get('date_param')
-            time_param = parameters.get('time_param')
+            # Updated to handle a single datetime parameter
+            tour_datetime_param = parameters.get('tour_datetime')
             
-            if date_param and time_param:
-                confirmation_message = f"Thank you! Your tour has been booked for {date_param} at {time_param}."
+            if tour_datetime_param:
+                confirmation_message = f"Thank you! Your tour has been booked for {tour_datetime_param}."
                 fulfillment_response = {
                     "fulfillmentResponse": {
                         "messages": [
@@ -141,7 +123,7 @@ def webhook():
                 fulfillment_response = {
                     "fulfillmentResponse": {
                         "messages": [
-                            {"text": {"text": ["Sorry, I couldn't find the date or time. Please try again."]}}
+                            {"text": {"text": ["Sorry, I couldn't finalize your booking. Please try again."]}}
                         ]
                     }
                 }
