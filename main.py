@@ -70,24 +70,8 @@ def webhook():
             }
 
         elif intent_display_name == 'BookTourLocationIntent':
-            # Create a dictionary to hold gym details
-            gym_details = {
-                "Baltimore Wharf Fitness & Wellbeing Gym": {
-                    "address": "14 Baltimore Wharf, London, E14 9FT",
-                    "phone": "020 7093 0277"
-                },
-                "Shoreditch Fitness & Wellbeing Gym": {
-                    "address": "1-6 Bateman's Row, London, EC2A 3HH",
-                    "phone": "020 7739 6688"
-                },
-                "Moorgate Fitness & Wellbeing Gym": {
-                    "address": "1, Ropemaker Street, London, EC2Y 9AW",
-                    "phone": "020 7920 6200"
-                }
-            }
-
-            # Extract the gym name from the session parameters
-            gym_name = parameters.get('gym_name')
+            # This intent is triggered by the user selecting a gym.
+            # We now only display the dates.
             
             # Generate dates for the next 30 days
             date_options = []
@@ -96,7 +80,29 @@ def webhook():
                 date = today + timedelta(days=i)
                 date_options.append({"text": date.strftime("%a %d %b")})
 
-            # Generate time slots
+            combined_payload = {
+                "richContent": [
+                    [
+                        {
+                            "type": "chips",
+                            "options": date_options
+                        }
+                    ]
+                ]
+            }
+            
+            fulfillment_response = {
+                "fulfillmentResponse": {
+                    "messages": [
+                        {"text": {"text": ["Great! Please choose a day to visit us."]}, "payload": combined_payload}
+                    ]
+                }
+            }
+
+        elif intent_display_name == 'BookTourDateTimeIntent':
+            # This new intent is triggered after the user selects a date.
+            # Now we display the time slots.
+
             time_options = [
                 {"text": "12:30"}, {"text": "13:00"}, {"text": "13:30"}, {"text": "14:00"},
                 {"text": "14:30"}, {"text": "15:00"}, {"text": "15:30"}, {"text": "16:00"},
@@ -104,34 +110,26 @@ def webhook():
                 {"text": "18:30"}, {"text": "19:00"}, {"text": "19:30"}
             ]
 
-            if gym_name and gym_name in gym_details:
-                details = gym_details[gym_name]
-                booking_message = (
-                    f"To Book your gym tour\n"
-                    f"at {gym_name}\n"
-                    f"{details['address']}\n"
-                    f"{details['phone']}\n\n"
-                    f"1. Enter your details\n"
-                    f"First name*\n"
-                    f"Last name*\n"
-                    f"Mobile number (UK only)*\n"
-                    f"Email*\n"
-                    f"2. Choose a day and time to visit us"
-                )
-            else:
-                booking_message = "Great! Please provide your first name, last name, mobile number, and email address to book your tour."
+            combined_payload = {
+                "richContent": [
+                    [
+                        {
+                            "type": "chips",
+                            "options": time_options
+                        }
+                    ]
+                ]
+            }
             
             fulfillment_response = {
                 "fulfillmentResponse": {
                     "messages": [
-                        {"text": {"text": [booking_message]}},
-                        {"payload": {"richContent": [[{"type": "chips", "options": date_options}]]}},
-                        {"text": {"text": ["Select a time:"]}},
-                        {"payload": {"richContent": [[{"type": "chips", "options": time_options}]]}}
+                        {"text": {"text": ["Now, please select a time:"], "payload": combined_payload}}
                     ]
                 }
             }
 
+    
     except Exception as e:
         # Log any errors for debugging
         print(f"Webhook error: {e}")
