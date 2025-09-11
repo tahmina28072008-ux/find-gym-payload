@@ -1,6 +1,4 @@
 from flask import Flask, request, jsonify
-import firebase_admin
-from firebase_admin import credentials, firestore
 import logging
 import os
 import datetime
@@ -10,26 +8,6 @@ logging.basicConfig(level=logging.INFO)
 
 # Initialize Flask app
 app = Flask(__name__)
-
-# --- Firestore Connection Setup ---
-db = None
-try:
-    cred = credentials.ApplicationDefault()
-    firebase_admin.initialize_app(cred)
-    logging.info("Firestore connected using Cloud Run environment credentials.")
-    db = firestore.client()
-except ValueError:
-    try:
-        if os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'):
-            cred = credentials.Certificate(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'))
-            firebase_admin.initialize_app(cred)
-            logging.info("Firestore connected using GOOGLE_APPLICATION_CREDENTIALS.")
-            db = firestore.client()
-        else:
-            logging.warning("No GOOGLE_APPLICATION_CREDENTIALS found. Running in mock data mode.")
-    except Exception as e:
-        logging.error(f"Error initializing Firebase: {e}")
-        logging.warning("Continuing without database connection. Using mock data.")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
