@@ -69,7 +69,7 @@ def webhook():
                 }
             }
 
-       elif intent_display_name == 'BookTourLocationIntent':
+        elif intent_display_name == 'BookTourLocationIntent':
             # This intent is triggered by the user selecting a gym.
             # We now only display the dates.
             
@@ -130,7 +130,7 @@ def webhook():
                     ]
                 }
             }
-
+        
 
     
     except Exception as e:
