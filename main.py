@@ -1,5 +1,3 @@
-# webhook.py
-
 from flask import Flask, request, jsonify
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -35,7 +33,7 @@ except ValueError:
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    """Handles a POST request from a Dialogflow CX agent."""
+    """Handles a POST request for the Locations Flow from a Dialogflow CX agent."""
     req = request.get_json(silent=True, force=True)
 
     # Default fallback response
@@ -98,10 +96,6 @@ def webhook():
 
         # --- BookTourLocationIntent ---
         elif intent_display_name == 'BookTourLocationIntent':
-            # This intent is triggered by the user selecting a gym.
-            # We will now only display the dates.
-            
-            # Generate dates for the next 30 days
             date_options = []
             today = datetime.datetime.now()
             for i in range(30):
@@ -130,9 +124,6 @@ def webhook():
         
         # --- BookTourDateTimeIntent ---
         elif intent_display_name == 'BookTourDateTimeIntent':
-            # This intent is triggered after the user selects a date.
-            # Now we display the time slots.
-
             time_options = [
                 {"text": "12:30"}, {"text": "13:00"}, {"text": "13:30"}, {"text": "14:00"},
                 {"text": "14:30"}, {"text": "15:00"}, {"text": "15:30"}, {"text": "16:00"},
@@ -162,7 +153,6 @@ def webhook():
         
         # --- BookTourFinalIntent ---
         elif intent_display_name == 'BookTourFinalIntent':
-            # This intent is triggered after the user selects both a date and time.
             date_param = parameters.get('date_param')
             time_param = parameters.get('time_param')
 
@@ -182,7 +172,7 @@ def webhook():
                             {"text": {"text": ["Sorry, I couldn't find the date or time. Please try again."]}}
                         ]
                     }
-                }   
+                }
 
     except Exception as e:
         logging.error(f"Webhook error: {e}")
@@ -190,4 +180,5 @@ def webhook():
     return jsonify(fulfillment_response)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
