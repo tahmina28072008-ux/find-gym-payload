@@ -80,28 +80,6 @@ def webhook():
                 date = today + datetime.timedelta(days=i)
                 date_options.append({"text": date.strftime("%a %d %b")})
 
-            combined_payload = {
-                "richContent": [
-                    [
-                        {
-                            "type": "chips",
-                            "options": date_options
-                        }
-                    ]
-                ]
-            }
-            
-            fulfillment_response = {
-                "fulfillmentResponse": {
-                    "messages": [
-                        {"text": {"text": ["Great! Please choose a day to visit us."]}},
-                        {"payload": combined_payload}
-                    ]
-                }
-            }
-        
-        # --- BookTourDateTimeIntent ---
-        elif intent_display_name == 'BookTourDateTimeIntent':
             time_options = [
                 {"text": "12:30"}, {"text": "13:00"}, {"text": "13:30"}, {"text": "14:00"},
                 {"text": "14:30"}, {"text": "15:00"}, {"text": "15:30"}, {"text": "16:00"},
@@ -114,6 +92,12 @@ def webhook():
                     [
                         {
                             "type": "chips",
+                            "options": date_options
+                        }
+                    ],
+                    [
+                        {
+                            "type": "chips",
                             "options": time_options
                         }
                     ]
@@ -123,8 +107,18 @@ def webhook():
             fulfillment_response = {
                 "fulfillmentResponse": {
                     "messages": [
-                        {"text": {"text": ["Now, please select a time:"]}},
+                        {"text": {"text": ["Great! Please choose a date and time for your visit."]}},
                         {"payload": combined_payload}
+                    ]
+                }
+            }
+        
+        # --- BookTourDateTimeIntent - This intent is now obsolete as the logic is merged with BookTourLocationIntent.
+        elif intent_display_name == 'BookTourDateTimeIntent':
+            fulfillment_response = {
+                "fulfillmentResponse": {
+                    "messages": [
+                        {"text": {"text": ["This intent is no longer active. Please select a date and time from the options provided previously."]}}
                     ]
                 }
             }
@@ -133,7 +127,7 @@ def webhook():
         elif intent_display_name == 'BookTourFinalIntent':
             date_param = parameters.get('date_param')
             time_param = parameters.get('time_param')
-
+            
             if date_param and time_param:
                 confirmation_message = f"Thank you! Your tour has been booked for {date_param} at {time_param}."
                 fulfillment_response = {
