@@ -6,6 +6,8 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -31,8 +33,12 @@ GYMS = {
 # --- Email Helper ---
 def send_email(to_email, subject, plain_body, html_body):
     """Sends an email with both plain text and HTML versions."""
-    sender_email = os.environ.get("SENDER_EMAIL")  # Replace with your email
-    sender_password = os.environ.get("SENDER_PASSWORD")  # Gmail App Password
+    sender_email = os.environ.get("SENDER_EMAIL")
+    sender_password = os.environ.get("SENDER_PASSWORD")
+
+    if not sender_email or not sender_password:
+        logging.error("SENDER_EMAIL or SENDER_PASSWORD environment variables are not set.")
+        return
 
     msg = MIMEMultipart('alternative')
     msg['From'] = sender_email
@@ -56,37 +62,55 @@ def send_email(to_email, subject, plain_body, html_body):
 
 # --- Twilio Helper ---
 # Your Twilio credentials
-# It's best practice to use environment variables for these
-# TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
-# TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
-# TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '+1234567890')
-TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID") # Replace with your Account SID
-TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN") # Replace with your Auth Token
-TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER") # Replace with your Twilio phone number
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
+TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER")
 
 def format_phone_number(phone_number):
     """Formats a phone number to E.164 format."""
-    if not phone_number.startswith('+'):
-        if phone_number.startswith('0'):
-            # Assume UK number and prepend +44
-            return f'+44{phone_number[1:]}'
-        # Otherwise, assume it's already in a form like 447...
-        return f'+{phone_number}'
-    return phone_number
+    # Remove all non-digit characters and spaces
+    clean_number = re.sub(r'[\s\-()]+', '', phone_number)
+    
+    # Check if the number starts with '+' and return it if so
+    if clean_number.startswith('+'):
+        return clean_number
+    
+    # Check if it starts with '0' (common for UK numbers)
+    if clean_number.startswith('0'):
+        # Assume UK number and prepend +44
+        return f'+44{clean_number[1:]}'
+
+    # Assume it's an international number without '+'
+    # For example, '447...' becomes '+447...'
+    return f'+{clean_number}'
 
 def send_whatsapp_message(to_number, body):
     """Sends a WhatsApp message using the Twilio API."""
+    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
+        logging.error("TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN environment variables are not set. Cannot send WhatsApp message.")
+        return
+    if not TWILIO_PHONE_NUMBER:
+        logging.error("TWILIO_PHONE_NUMBER environment variable is not set. Cannot send WhatsApp message.")
+        return
+
+    formatted_to_number = format_phone_number(to_number)
+    logging.info(f"Original number: {to_number}, Formatted number: {formatted_to_number}")
+    
     try:
         client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-        # Twilio requires the number to be in the format 'whatsapp:+<number>'
         message = client.messages.create(
             from_=f'whatsapp:{TWILIO_PHONE_NUMBER}',
             body=body,
-            to=f'whatsapp:{to_number}'
+            to=f'whatsapp:{formatted_to_number}'
         )
-        logging.info(f"WhatsApp message sent to {to_number}: {message.sid}")
+        logging.info(f"WhatsApp message sent to {formatted_to_number}: {message.sid}")
+    except TwilioRestException as e:
+        if e.status == 401:
+            logging.error("Twilio authentication failed. Please check your Account SID and Auth Token.")
+        else:
+            logging.error(f"Failed to send WhatsApp message: {e}")
     except Exception as e:
-        logging.error(f"Failed to send WhatsApp message: {e}")
+        logging.error(f"An unexpected error occurred: {e}")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -267,7 +291,6 @@ def webhook():
                     f"🗓 Date & Time: {formatted_datetime}. "
                     "We look forward to seeing you!"
                 )
-                # This assumes the phone number is in a format Twilio can use (e.g., '+44...')
                 send_whatsapp_message(phone, whatsapp_body)
 
                 fulfillment_response = {
