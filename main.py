@@ -120,14 +120,17 @@ def webhook():
 
         # --- CollectUserDetailsIntent ---
         elif intent_display_name == 'CollectUserDetailsIntent' or parameters.get('first_name'):
-            first_name = parameters.get('first_name')
-            last_name = parameters.get('last_name')
+            first_name_param = parameters.get('first_name')
+            last_name_param = parameters.get('last_name')
             phone = parameters.get('phone_number')
             email = parameters.get('email')
             gymname = parameters.get('gymname', 'Baltimore Wharf')
             gym_address = parameters.get('gym_address', GYMS[gymname]['address'])
             gym_phone = parameters.get('gym_phone', GYMS[gymname]['phone'])
             tour_datetime_param = parameters.get('tour_datetime')
+            
+            first_name = first_name_param.get("name") if isinstance(first_name_param, dict) else first_name_param
+            last_name = last_name_param.get("name") if isinstance(last_name_param, dict) else last_name_param
 
             if tour_datetime_param:
                 if isinstance(tour_datetime_param, dict):
