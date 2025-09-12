@@ -31,8 +31,8 @@ GYMS = {
 # --- Email Helper ---
 def send_email(to_email, subject, plain_body, html_body):
     """Sends an email with both plain text and HTML versions."""
-    sender_email = "niljoshna28@gmail.com"  # Replace with your email
-    sender_password = "nxlcscihekyxcedc"  # Gmail App Password
+    sender_email = os.environ.get("SENDER_EMAIL")  # Replace with your email
+    sender_password = os.environ.get("SENDER_PASSWORD")  # Gmail App Password
 
     msg = MIMEMultipart('alternative')
     msg['From'] = sender_email
@@ -57,12 +57,12 @@ def send_email(to_email, subject, plain_body, html_body):
 # --- Twilio Helper ---
 # Your Twilio credentials
 # It's best practice to use environment variables for these
-# TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
-# TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', 'your_auth_token')
+# TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
+# TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
 # TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '+1234567890')
-TWILIO_ACCOUNT_SID = 'AC162c36bb75e64b9f6fdd6403fe5d1c7d' # Replace with your Account SID
-TWILIO_AUTH_TOKEN = 'f441565c369bb7ea5e72033a8892363a' # Replace with your Auth Token
-TWILIO_PHONE_NUMBER = '+14155238886' # Replace with your Twilio phone number
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID") # Replace with your Account SID
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN") # Replace with your Auth Token
+TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER") # Replace with your Twilio phone number
 
 def send_whatsapp_message(to_number, body):
     """Sends a WhatsApp message using the Twilio API."""
