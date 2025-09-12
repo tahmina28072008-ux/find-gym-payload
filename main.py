@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import logging
+import os
 from datetime import datetime, timedelta
 
 # Configure logging
@@ -69,28 +70,19 @@ def webhook():
         elif intent_display_name == 'BookTourLocationIntent':
             combined_options = []
             today = datetime.now()
-            time_slots = [
-                "12:30", "13:00", "13:30", "14:00", "14:30", "15:00",
-                "15:30", "16:00", "16:30", "17:00", "17:30", "18:00",
-                "18:30", "19:00", "19:30"
-            ]
+            time_slots = ["12:30", "13:00", "13:30", "14:00", "14:30",
+                          "15:00", "15:30", "16:00", "16:30", "17:00",
+                          "17:30", "18:00", "18:30", "19:00", "19:30"]
 
-            # Generate next 7 days × all time slots
-            for i in range(7):
+            for i in range(30):
                 date = today + timedelta(days=i)
                 for time in time_slots:
-                    hours, minutes = map(int, time.split(":"))
-                    dt = datetime(date.year, date.month, date.day, hours, minutes)
-
-                    # ISO string for Dialogflow @sys.date-time capture
-                    iso_value = dt.isoformat()
-
-                    # Friendly label for user
-                    friendly_text = dt.strftime("%a %d %b, %H:%M")
-
+                    combined_text = date.strftime("%a %d %b") + ", " + time
+                    hour, minute = map(int, time.split(":"))
+                    iso_value = datetime(date.year, date.month, date.day, hour, minute).isoformat()
                     combined_options.append({
-                        "text": friendly_text,
-                        "value": iso_value
+                        "text": combined_text,
+                        "value": iso_value  # ISO value for @sys.date-time
                     })
 
             combined_payload = {
@@ -116,22 +108,17 @@ def webhook():
         # --- BookTourFinalIntent ---
         elif intent_display_name == 'BookTourFinalIntent':
             tour_datetime_param = parameters.get('tour_datetime')
+            gymname = parameters.get('gymname', 'your selected gym')
 
             if tour_datetime_param:
                 try:
-                    # Handle structured datetime (from CX)
-                    tour_date_time = datetime(
-                        tour_datetime_param['year'],
-                        tour_datetime_param['month'],
-                        tour_datetime_param['day'],
-                        tour_datetime_param['hours'],
-                        tour_datetime_param['minutes']
-                    )
+                    # Parse ISO datetime
+                    tour_date_time = datetime.fromisoformat(tour_datetime_param)
                     formatted_date_time = tour_date_time.strftime("%A, %d %B at %I:%M %p")
 
                     confirmation_message = (
-                        f"Thank you! Your tour booking is in progress for {formatted_date_time}. "
-                        "To confirm the booking I need more details about you."
+                        f"Thank you! Your tour at {gymname} is confirmed for {formatted_date_time}. "
+                        "We’ll contact you if we need more details."
                     )
 
                     fulfillment_response = {
@@ -141,7 +128,8 @@ def webhook():
                             ]
                         }
                     }
-                except (KeyError, ValueError) as e:
+
+                except Exception as e:
                     logging.error(f"Error parsing tour_datetime: {e}")
                     fulfillment_response = {
                         "fulfillmentResponse": {
@@ -150,11 +138,12 @@ def webhook():
                             ]
                         }
                     }
+
             else:
                 fulfillment_response = {
                     "fulfillmentResponse": {
                         "messages": [
-                            {"text": {"text": ["Please select a date and time from the options."]}}
+                            {"text": {"text": ["Sorry, I couldn't finalize your booking. Please try again."]}}
                         ]
                     }
                 }
@@ -164,7 +153,7 @@ def webhook():
 
     return jsonify(fulfillment_response)
 
+
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=True, host='0.0.0.0', port=port)
