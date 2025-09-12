@@ -111,14 +111,54 @@ def webhook():
             tour_datetime_param = parameters.get('tour_datetime')
             
             if tour_datetime_param:
-                confirmation_message = f"Thank you! Your tour has been booked for {tour_datetime_param}."
-                fulfillment_response = {
-                    "fulfillmentResponse": {
-                        "messages": [
-                            {"text": {"text": [confirmation_message]}}
+                try:
+                    # Construct a datetime object from the structured data
+                    tour_date_time = datetime(
+                        tour_datetime_param['year'],
+                        tour_datetime_param['month'],
+                        tour_datetime_param['day'],
+                        tour_datetime_param['hours'],
+                        tour_datetime_param['minutes']
+                    )
+                    # Format the datetime object into a readable string
+                    formatted_date_time = tour_date_time.strftime("%A, %d %B at %I:%M %p")
+                    
+                    # Create a simple text message for the confirmation
+                    confirmation_message = f"Thank you! Your tour booking is in progress for {formatted_date_time}. To confirm the booking I need more details about you."
+                    
+                    # Create a rich response payload for the chips
+                    continue_chips_payload = {
+                        "richContent": [
+                            [
+                                {
+                                    "type": "chips",
+                                    "options": [
+                                        {
+                                            "text": "Continue"
+                                        }
+                                    ]
+                                }
+                            ]
                         ]
                     }
-                }
+
+                    fulfillment_response = {
+                        "fulfillmentResponse": {
+                            "messages": [
+                                {"text": {"text": [confirmation_message]}},
+                                {"payload": continue_chips_payload}
+                            ]
+                        }
+                    }
+                except (KeyError, ValueError) as e:
+                    logging.error(f"Error parsing tour_datetime: {e}")
+                    fulfillment_response = {
+                        "fulfillmentResponse": {
+                            "messages": [
+                                {"text": {"text": ["Sorry, I couldn't process the date and time. Please try again."]}
+                            ]}
+                        ]
+                    }
             else:
                 fulfillment_response = {
                     "fulfillmentResponse": {
