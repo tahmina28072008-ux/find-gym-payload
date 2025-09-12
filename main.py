@@ -64,6 +64,16 @@ TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID") # Replace with your Ac
 TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN") # Replace with your Auth Token
 TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER") # Replace with your Twilio phone number
 
+def format_phone_number(phone_number):
+    """Formats a phone number to E.164 format."""
+    if not phone_number.startswith('+'):
+        if phone_number.startswith('0'):
+            # Assume UK number and prepend +44
+            return f'+44{phone_number[1:]}'
+        # Otherwise, assume it's already in a form like 447...
+        return f'+{phone_number}'
+    return phone_number
+
 def send_whatsapp_message(to_number, body):
     """Sends a WhatsApp message using the Twilio API."""
     try:
