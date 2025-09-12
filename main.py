@@ -31,8 +31,8 @@ GYMS = {
 # --- Email Helper ---
 def send_email(to_email, subject, plain_body, html_body):
     """Sends an email with both plain text and HTML versions."""
-    sender_email = "youremail@gmail.com"  # Replace with your email
-    sender_password = "your_app_password"  # Gmail App Password
+    sender_email = "niljoshna28@gmail.com"  # Replace with your email
+    sender_password = "nxlcscihekyxcedc"  # Gmail App Password
 
     msg = MIMEMultipart('alternative')
     msg['From'] = sender_email
