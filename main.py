@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 import logging
-import os
 from datetime import datetime, timedelta
 
 # Configure logging
@@ -76,7 +75,7 @@ def webhook():
             if not gym_name or gym_name not in GYMS:
                 gym_name = "Baltimore Wharf"
 
-            # Automatically store gym details in session parameters
+            # Store gym details in session parameters
             parameters['gymname'] = gym_name
             parameters['gym_address'] = GYMS[gym_name]['address']
             parameters['gym_phone'] = GYMS[gym_name]['phone']
@@ -120,14 +119,17 @@ def webhook():
 
         # --- CollectUserDetailsIntent ---
         elif intent_display_name == 'CollectUserDetailsIntent' or parameters.get('first_name'):
-            first_name = parameters.get('first_name')
-            last_name = parameters.get('last_name')
+            first_name_param = parameters.get('first_name')
+            last_name_param = parameters.get('last_name')
             phone = parameters.get('phone_number')
             email = parameters.get('email')
             gymname = parameters.get('gymname', 'Baltimore Wharf')
             gym_address = parameters.get('gym_address', GYMS[gymname]['address'])
             gym_phone = parameters.get('gym_phone', GYMS[gymname]['phone'])
             tour_datetime_param = parameters.get('tour_datetime')
+
+            first_name = first_name_param.get("name") if isinstance(first_name_param, dict) else first_name_param
+            last_name = last_name_param.get("name") if isinstance(last_name_param, dict) else last_name_param
 
             if tour_datetime_param:
                 if isinstance(tour_datetime_param, dict):
@@ -175,41 +177,6 @@ def webhook():
                 fulfillment_response = {
                     "fulfillmentResponse": {
                         "messages": [{"text": {"text": [prompt_message]}}]
-                    }
-                }
-
-        # --- Handle tour_datetime before CollectUserDetails ---
-        elif parameters.get('tour_datetime'):
-            tour_datetime_param = parameters.get('tour_datetime')
-            logging.info(f"Raw tour_datetime param: {tour_datetime_param}")
-            tour_date_time = None
-            try:
-                if isinstance(tour_datetime_param, dict):
-                    tour_date_time = datetime(
-                        int(tour_datetime_param.get("year", 0)),
-                        int(tour_datetime_param.get("month", 1)),
-                        int(tour_datetime_param.get("day", 1)),
-                        int(tour_datetime_param.get("hours", 0)),
-                        int(tour_datetime_param.get("minutes", 0))
-                    )
-                if tour_date_time:
-                    formatted_date_time = tour_date_time.strftime("%A, %d %B at %I:%M %p")
-                    confirmation_message = (
-                        f"Thank you! Your tour booking is in progress for {formatted_date_time}. "
-                        "To confirm the booking I need more details about you."
-                    )
-                    fulfillment_response = {
-                        "fulfillmentResponse": {
-                            "messages": [{"text": {"text": [confirmation_message]}}]
-                        }
-                    }
-            except Exception as e:
-                logging.error(f"Error parsing tour_datetime: {e}")
-                fulfillment_response = {
-                    "fulfillmentResponse": {
-                        "messages": [
-                            {"text": {"text": ["Sorry, I couldn't process the date and time. Please try again."]}}
-                        ]
                     }
                 }
 
