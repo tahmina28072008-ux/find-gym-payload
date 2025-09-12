@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from twilio.rest import Client
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,15 +31,14 @@ GYMS = {
 # --- Email Helper ---
 def send_email(to_email, subject, plain_body, html_body):
     """Sends an email with both plain text and HTML versions."""
-    sender_email = "niljoshna28@gmail.com"  # Replace with your email
-    sender_password = "nxlcscihekyxcedc"  # Gmail App Password
+    sender_email = "youremail@gmail.com"  # Replace with your email
+    sender_password = "your_app_password"  # Gmail App Password
 
     msg = MIMEMultipart('alternative')
     msg['From'] = sender_email
     msg['To'] = to_email
     msg['Subject'] = subject
 
-    # Attach both parts of the message.
     part1 = MIMEText(plain_body, 'plain')
     part2 = MIMEText(html_body, 'html')
     msg.attach(part1)
@@ -53,6 +53,30 @@ def send_email(to_email, subject, plain_body, html_body):
         logging.info(f"Email sent to {to_email}")
     except Exception as e:
         logging.error(f"Failed to send email: {e}")
+
+# --- Twilio Helper ---
+# Your Twilio credentials
+# It's best practice to use environment variables for these
+# TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+# TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', 'your_auth_token')
+# TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '+1234567890')
+TWILIO_ACCOUNT_SID = 'AC162c36bb75e64b9f6fdd6403fe5d1c7d' # Replace with your Account SID
+TWILIO_AUTH_TOKEN = 'f441565c369bb7ea5e72033a8892363a' # Replace with your Auth Token
+TWILIO_PHONE_NUMBER = '+1415523888' # Replace with your Twilio phone number
+
+def send_whatsapp_message(to_number, body):
+    """Sends a WhatsApp message using the Twilio API."""
+    try:
+        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        # Twilio requires the number to be in the format 'whatsapp:+<number>'
+        message = client.messages.create(
+            from_=f'whatsapp:{TWILIO_PHONE_NUMBER}',
+            body=body,
+            to=f'whatsapp:{to_number}'
+        )
+        logging.info(f"WhatsApp message sent to {to_number}: {message.sid}")
+    except Exception as e:
+        logging.error(f"Failed to send WhatsApp message: {e}")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -114,7 +138,6 @@ def webhook():
             if not gym_name or gym_name not in GYMS:
                 gym_name = "Baltimore Wharf"
 
-            # Automatically store gym details in session parameters
             parameters['gymname'] = gym_name
             parameters['gym_address'] = GYMS[gym_name]['address']
             parameters['gym_phone'] = GYMS[gym_name]['phone']
@@ -214,7 +237,7 @@ def webhook():
                         </p>
                         
                         <p><strong>🗓 Date & Time:</strong> {formatted_datetime}</p>
-                                          
+                        
                         <p>We can’t wait to welcome you to the gym!</p>
                         
                         <hr style="border: 0; height: 1px; background: #ddd; margin: 20px 0;">
@@ -227,6 +250,15 @@ def webhook():
                 # --- Send Email ---
                 email_subject = "Your Gym Tour Booking Confirmation"
                 send_email(email, email_subject, confirmation_message_plain, confirmation_message_html)
+
+                # --- Send WhatsApp Message ---
+                whatsapp_body = (
+                    f"Hi {first_name}, your gym tour for {gymname} is confirmed! "
+                    f"🗓 Date & Time: {formatted_datetime}. "
+                    "We look forward to seeing you!"
+                )
+                # This assumes the phone number is in a format Twilio can use (e.g., '+44...')
+                send_whatsapp_message(phone, whatsapp_body)
 
                 fulfillment_response = {
                     "fulfillmentResponse": {
