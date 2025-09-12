@@ -45,10 +45,18 @@ def webhook():
         # --- FindGymIntent ---
         if intent_display_name == 'FindGymIntent':
             card_text_message = {
-                "text": {"text": ["Here are some of our nearest gyms. Which one would you like to book a tour at?\n\n"
-                                  "1. Baltimore Wharf Fitness & Wellbeing Gym\n"
-                                  "2. Shoreditch Fitness & Wellbeing Gym\n"
-                                  "3. Moorgate Fitness & Wellbeing Gym\n"]}
+                "text": {"text": [
+                        "Here are some of our nearest gyms. Which one would you like to book a tour at?\n\n"
+                        "1. Baltimore Wharf Fitness & Wellbeing Gym\n"
+                        "   14 Baltimore Wharf, London, E14 9FT\n"
+                        "   Phone: 020 7093 0277\n\n"
+                        "2. Shoreditch Fitness & Wellbeing Gym\n"
+                        "   1-6 Bateman's Row, London, EC2A 3HH\n"
+                        "   Phone: 020 7739 6688\n\n"
+                        "3. Moorgate Fitness & Wellbeing Gym\n"
+                        "   1, Ropemaker Street, London, EC2Y 9AW\n"
+                        "   Phone: 020 7920 6200\n"
+                    ]}
             }
             chips_payload = {
                 "richContent": [
