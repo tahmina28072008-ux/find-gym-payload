@@ -62,7 +62,7 @@ def send_email(to_email, subject, plain_body, html_body):
 # TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '+1234567890')
 TWILIO_ACCOUNT_SID = 'AC162c36bb75e64b9f6fdd6403fe5d1c7d' # Replace with your Account SID
 TWILIO_AUTH_TOKEN = 'f441565c369bb7ea5e72033a8892363a' # Replace with your Auth Token
-TWILIO_PHONE_NUMBER = '+1415523888' # Replace with your Twilio phone number
+TWILIO_PHONE_NUMBER = '+14155238886' # Replace with your Twilio phone number
 
 def send_whatsapp_message(to_number, body):
     """Sends a WhatsApp message using the Twilio API."""
