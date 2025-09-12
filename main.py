@@ -28,6 +28,9 @@ def webhook():
         intent_display_name = req.get("intentInfo", {}).get("displayName")
         parameters = req.get("sessionInfo", {}).get("parameters", {})
 
+        logging.info(f"Intent: {intent_display_name}")
+        logging.info(f"Parameters: {parameters}")
+
         # --- FindGymIntent ---
         if intent_display_name == 'FindGymIntent':
             card_text_message = {
@@ -102,29 +105,58 @@ def webhook():
                 }
             }
 
-        # --- Handle date/time selection immediately ---
-        # This triggers when tour_datetime is filled
+        # --- Handle date/time selection ---
         elif parameters.get('tour_datetime'):
             tour_datetime_param = parameters.get('tour_datetime')
-            try:
-                # Parse ISO 8601 string
-                tour_date_time = datetime.fromisoformat(tour_datetime_param)
-                formatted_date_time = tour_date_time.strftime("%A, %d %B at %I:%M %p")
-                confirmation_message = f"Thank you! Your tour booking is in progress for {formatted_date_time}. To confirm the booking I need more details about you."
+            logging.info(f"Raw tour_datetime param: {tour_datetime_param}")
+            tour_date_time = None
 
-                fulfillment_response = {
-                    "fulfillmentResponse": {
-                        "messages": [
-                            {"text": {"text": [confirmation_message]}}
-                        ]
+            try:
+                if isinstance(tour_datetime_param, str):
+                    # plain ISO string
+                    tour_date_time = datetime.fromisoformat(
+                        tour_datetime_param.replace("Z", "+00:00")
+                    )
+
+                elif isinstance(tour_datetime_param, dict):
+                    # dictionary with startDateTime
+                    if "startDateTime" in tour_datetime_param:
+                        tour_date_time = datetime.fromisoformat(
+                            tour_datetime_param["startDateTime"].replace("Z", "+00:00")
+                        )
+
+                elif isinstance(tour_datetime_param, list) and len(tour_datetime_param) > 0:
+                    first_item = tour_datetime_param[0]
+                    if isinstance(first_item, dict) and "startDateTime" in first_item:
+                        tour_date_time = datetime.fromisoformat(
+                            first_item["startDateTime"].replace("Z", "+00:00")
+                        )
+
+                if tour_date_time:
+                    formatted_date_time = tour_date_time.strftime("%A, %d %B at %I:%M %p")
+                    confirmation_message = (
+                        f"Thank you! Your tour booking is in progress for {formatted_date_time}. "
+                        "To confirm the booking I need more details about you."
+                    )
+
+                    fulfillment_response = {
+                        "fulfillmentResponse": {
+                            "messages": [
+                                {"text": {"text": [confirmation_message]}}
+                            ]
+                        }
                     }
-                }
+                else:
+                    raise ValueError("Unsupported format for tour_datetime")
+
             except Exception as e:
                 logging.error(f"Error parsing tour_datetime: {e}")
                 fulfillment_response = {
                     "fulfillmentResponse": {
                         "messages": [
-                            {"text": {"text": ["Sorry, I couldn't process the date and time. Please try again."]}}
+                            {"text": {"text": [
+                                "Sorry, I couldn't process the date and time. Please try again."
+                            ]}}
                         ]
                     }
                 }
