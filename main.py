@@ -35,14 +35,8 @@ def webhook():
                     "text": [
                         "Here are some of our nearest gyms. Which one would you like to book a tour at?\n\n"
                         "1. Baltimore Wharf Fitness & Wellbeing Gym\n"
-                        "   14 Baltimore Wharf, London, E14 9FT\n"
-                        "   Phone: 020 7093 0277\n\n"
                         "2. Shoreditch Fitness & Wellbeing Gym\n"
-                        "   1-6 Bateman's Row, London, EC2A 3HH\n"
-                        "   Phone: 020 7739 6688\n\n"
                         "3. Moorgate Fitness & Wellbeing Gym\n"
-                        "   1, Ropemaker Street, London, EC2Y 9AW\n"
-                        "   Phone: 020 7920 6200\n"
                     ]
                 }
             }
@@ -69,20 +63,23 @@ def webhook():
         # --- BookTourLocationIntent ---
         elif intent_display_name == 'BookTourLocationIntent':
             combined_options = []
-            today = datetime.now()
+
+            # Start date: 13th September 2025
+            start_date = datetime(2025, 9, 13)
+            num_days = 7  # next 7 days
             time_slots = ["12:30", "13:00", "13:30", "14:00", "14:30",
                           "15:00", "15:30", "16:00", "16:30", "17:00",
                           "17:30", "18:00", "18:30", "19:00", "19:30"]
 
-            for i in range(30):
-                date = today + timedelta(days=i)
+            for i in range(num_days):
+                date = start_date + timedelta(days=i)
                 for time in time_slots:
                     combined_text = date.strftime("%a %d %b") + ", " + time
                     hour, minute = map(int, time.split(":"))
                     iso_value = datetime(date.year, date.month, date.day, hour, minute).isoformat()
                     combined_options.append({
                         "text": combined_text,
-                        "value": iso_value  # ISO value for @sys.date-time
+                        "value": iso_value
                     })
 
             combined_payload = {
@@ -105,45 +102,29 @@ def webhook():
                 }
             }
 
-        # --- BookTourFinalIntent ---
-        elif intent_display_name == 'BookTourFinalIntent':
+        # --- Handle date/time selection immediately ---
+        # This triggers when tour_datetime is filled
+        elif parameters.get('tour_datetime'):
             tour_datetime_param = parameters.get('tour_datetime')
-            gymname = parameters.get('gymname', 'your selected gym')
+            try:
+                # Parse ISO 8601 string
+                tour_date_time = datetime.fromisoformat(tour_datetime_param)
+                formatted_date_time = tour_date_time.strftime("%A, %d %B at %I:%M %p")
+                confirmation_message = f"Thank you! Your tour booking is in progress for {formatted_date_time}. To confirm the booking I need more details about you."
 
-            if tour_datetime_param:
-                try:
-                    # Parse ISO datetime
-                    tour_date_time = datetime.fromisoformat(tour_datetime_param)
-                    formatted_date_time = tour_date_time.strftime("%A, %d %B at %I:%M %p")
-
-                    confirmation_message = (
-                        f"Thank you! Your tour at {gymname} is confirmed for {formatted_date_time}. "
-                        "We’ll contact you if we need more details."
-                    )
-
-                    fulfillment_response = {
-                        "fulfillmentResponse": {
-                            "messages": [
-                                {"text": {"text": [confirmation_message]}}
-                            ]
-                        }
-                    }
-
-                except Exception as e:
-                    logging.error(f"Error parsing tour_datetime: {e}")
-                    fulfillment_response = {
-                        "fulfillmentResponse": {
-                            "messages": [
-                                {"text": {"text": ["Sorry, I couldn't process the date and time. Please try again."]}}
-                            ]
-                        }
-                    }
-
-            else:
                 fulfillment_response = {
                     "fulfillmentResponse": {
                         "messages": [
-                            {"text": {"text": ["Sorry, I couldn't finalize your booking. Please try again."]}}
+                            {"text": {"text": [confirmation_message]}}
+                        ]
+                    }
+                }
+            except Exception as e:
+                logging.error(f"Error parsing tour_datetime: {e}")
+                fulfillment_response = {
+                    "fulfillmentResponse": {
+                        "messages": [
+                            {"text": {"text": ["Sorry, I couldn't process the date and time. Please try again."]}}
                         ]
                     }
                 }
