@@ -126,27 +126,10 @@ def webhook():
                     # Create a simple text message for the confirmation
                     confirmation_message = f"Thank you! Your tour booking is in progress for {formatted_date_time}. To confirm the booking I need more details about you."
                     
-                    # Create a rich response payload for the chips
-                    continue_chips_payload = {
-                        "richContent": [
-                            [
-                                {
-                                    "type": "chips",
-                                    "options": [
-                                        {
-                                            "text": "Continue"
-                                        }
-                                    ]
-                                }
-                            ]
-                        ]
-                    }
-
                     fulfillment_response = {
                         "fulfillmentResponse": {
                             "messages": [
                                 {"text": {"text": [confirmation_message]}},
-                                {"payload": continue_chips_payload}
                             ]
                         }
                     }
@@ -155,8 +138,15 @@ def webhook():
                     fulfillment_response = {
                         "fulfillmentResponse": {
                             "messages": [
-                                {"text": {"text": ["Sorry, I couldn't process the date and time. Please try again."]}
-                            ]}
+                                {
+                                    "text": {
+                                        "text": [
+                                            "Sorry, I couldn't process the date and time. Please try again."
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
                     }
             else:
                 fulfillment_response = {
