@@ -157,7 +157,6 @@ def webhook():
                             "messages": [
                                 {"text": {"text": ["Sorry, I couldn't process the date and time. Please try again."]}
                             ]}
-                        ]
                     }
             else:
                 fulfillment_response = {
