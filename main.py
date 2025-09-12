@@ -105,32 +105,22 @@ def webhook():
                 }
             }
 
-        # --- Handle date/time selection ---
+        # --- Handle tour_datetime selection ---
         elif parameters.get('tour_datetime'):
             tour_datetime_param = parameters.get('tour_datetime')
             logging.info(f"Raw tour_datetime param: {tour_datetime_param}")
             tour_date_time = None
 
             try:
-                if isinstance(tour_datetime_param, str):
-                    # plain ISO string
-                    tour_date_time = datetime.fromisoformat(
-                        tour_datetime_param.replace("Z", "+00:00")
+                if isinstance(tour_datetime_param, dict):
+                    # Build datetime object from structured fields
+                    tour_date_time = datetime(
+                        int(tour_datetime_param.get("year", 0)),
+                        int(tour_datetime_param.get("month", 1)),
+                        int(tour_datetime_param.get("day", 1)),
+                        int(tour_datetime_param.get("hours", 0)),
+                        int(tour_datetime_param.get("minutes", 0))
                     )
-
-                elif isinstance(tour_datetime_param, dict):
-                    # dictionary with startDateTime
-                    if "startDateTime" in tour_datetime_param:
-                        tour_date_time = datetime.fromisoformat(
-                            tour_datetime_param["startDateTime"].replace("Z", "+00:00")
-                        )
-
-                elif isinstance(tour_datetime_param, list) and len(tour_datetime_param) > 0:
-                    first_item = tour_datetime_param[0]
-                    if isinstance(first_item, dict) and "startDateTime" in first_item:
-                        tour_date_time = datetime.fromisoformat(
-                            first_item["startDateTime"].replace("Z", "+00:00")
-                        )
 
                 if tour_date_time:
                     formatted_date_time = tour_date_time.strftime("%A, %d %B at %I:%M %p")
@@ -147,7 +137,7 @@ def webhook():
                         }
                     }
                 else:
-                    raise ValueError("Unsupported format for tour_datetime")
+                    raise ValueError("tour_datetime could not be parsed")
 
             except Exception as e:
                 logging.error(f"Error parsing tour_datetime: {e}")
