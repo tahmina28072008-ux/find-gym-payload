@@ -110,36 +110,6 @@ def send_whatsapp_message(to_number, body):
     except Exception as e:
         logging.error(f"Unexpected error: {e}")
 
-# --- Helpers for parsing date/time from Dialogflow session parameters ---
-def parse_datetime_param(param):
-    """
-    Accepts either a dict like:
-      { "year": 2025, "month": 9, "day": 23, "hours": 14, "minutes": 45, ... }
-    or an ISO datetime string, and returns a datetime object or None.
-    """
-    if not param:
-        return None
-    # dict-style
-    if isinstance(param, dict):
-        try:
-            year = int(param.get("year", 0))
-            month = int(param.get("month", 1))
-            day = int(param.get("day", 1))
-            # Dialogflow has sometimes 'hours' or 'hour'
-            hour = int(param.get("hours", param.get("hour", 0) or 0))
-            minute = int(param.get("minutes", param.get("minute", 0) or 0))
-            return datetime(year, month, day, hour, minute)
-        except Exception as e:
-            logging.warning(f"parse_datetime_param: failed to convert dict param {param}: {e}")
-            return None
-    # iso string
-    if isinstance(param, str):
-        try:
-            return datetime.fromisoformat(param)
-        except Exception as e:
-            logging.warning(f"parse_datetime_param: failed to parse iso string {param}: {e}")
-            return None
-    return None
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -175,7 +145,7 @@ def webhook():
                     "   📞 020 7920 6200\n\n"
                     "👉 Which one would you like to book a tour at?"
                 ]}}
-            }
+            
             chips_payload = {
                 "richContent": [
                     [
@@ -275,13 +245,25 @@ def webhook():
             last_name = last_name_param.get("name") if isinstance(last_name_param, dict) else last_name_param
 
             # Parse tour_datetime (could be dict or ISO string)
-            tour_datetime_param = parameters.get('tour_datetime') or parameters.get('tourDateTime') or parameters.get('tour_datetime_param')
-            tour_dt = parse_datetime_param(tour_datetime_param)
-            if tour_dt:
-                formatted_datetime = tour_dt.strftime("%A, %d %B at %I:%M %p")
+            tour_datetime_param = parameters.get('tour_datetime') 
+            if tour_datetime_param:
+                if isinstance(tour_datetime_param, dict):
+                    try:
+                        tour_date_time = datetime(
+                            int(tour_datetime_param.get("year", 0)),
+                            int(tour_datetime_param.get("month", 1)),
+                            int(tour_datetime_param.get("day", 1)),
+                            int(tour_datetime_param.get("hours", 0)),
+                            int(tour_datetime_param.get("minutes", 0))
+                        )
+                        formatted_datetime = tour_date_time.strftime("%A, %d %B at %I:%M %p")
+                    except:
+                        formatted_datetime = "your selected date/time"
+                else:
+                    formatted_datetime = str(tour_datetime_param)
             else:
                 formatted_datetime = "your selected date/time"
-
+                
             if all([first_name, last_name, phone, email]):
                 # Confirmation message for chat (brief)
                 confirmation_message_plain = (
@@ -363,6 +345,41 @@ def webhook():
                 fulfillment_response = {
                     "fulfillmentResponse": {
                         "messages": [{"text": {"text": [prompt_message]}}]
+                    }
+                }
+                
+         # --- Handle tour_datetime before CollectUserDetails ---
+        elif parameters.get('tour_datetime'):
+            tour_datetime_param = parameters.get('tour_datetime')
+            logging.info(f"Raw tour_datetime param: {tour_datetime_param}")
+            tour_date_time = None
+            try:
+                if isinstance(tour_datetime_param, dict):
+                    tour_date_time = datetime(
+                        int(tour_datetime_param.get("year", 0)),
+                        int(tour_datetime_param.get("month", 1)),
+                        int(tour_datetime_param.get("day", 1)),
+                        int(tour_datetime_param.get("hours", 0)),
+                        int(tour_datetime_param.get("minutes", 0))
+                    )
+                if tour_date_time:
+                    formatted_date_time = tour_date_time.strftime("%A, %d %B at %I:%M %p")
+                    confirmation_message = (
+                        f"Thank you! Your tour booking is in progress for {formatted_date_time}. "
+                        "To confirm the booking I need more details about you."
+                    )
+                    fulfillment_response = {
+                        "fulfillmentResponse": {
+                            "messages": [{"text": {"text": [confirmation_message]}}]
+                        }
+                    }
+            except Exception as e:
+                logging.error(f"Error parsing tour_datetime: {e}")
+                fulfillment_response = {
+                    "fulfillmentResponse": {
+                        "messages": [
+                            {"text": {"text": ["Sorry, I couldn't process the date and time. Please try again."]}}
+                        ]
                     }
                 }
 
