@@ -219,26 +219,33 @@ def webhook():
 
         # --- CollectUserDetailsIntent ---
         elif intent_display_name == 'CollectUserDetailsIntent' or parameters.get('first_name'):
-            first_name = parameters.get('first_name')
-            last_name = parameters.get('last_name')
+            first_name_param = parameters.get('first_name')
+            last_name_param = parameters.get('last_name')
             phone = parameters.get('phone_number')
             email = parameters.get('email')
             gymname = parameters.get('gymname', 'Baltimore Wharf')
-            gym_info = GYMS[gymname]
-
+            gym_address = parameters.get('gym_address', GYMS[gymname]['address'])
+            gym_phone = parameters.get('gym_phone', GYMS[gymname]['phone'])
             tour_datetime_param = parameters.get('tour_datetime')
-            if tour_datetime_param and isinstance(tour_datetime_param, dict):
-                try:
-                    tour_date_time = datetime(
-                        int(tour_datetime_param.get("year", 0)),
-                        int(tour_datetime_param.get("month", 1)),
-                        int(tour_datetime_param.get("day", 1)),
-                        int(tour_datetime_param.get("hours", 0)),
-                        int(tour_datetime_param.get("minutes", 0))
-                    )
-                    formatted_datetime = tour_date_time.strftime("%A, %d %B at %I:%M %p")
-                except:
-                    formatted_datetime = "your selected date/time"
+            
+            first_name = first_name_param.get("name") if isinstance(first_name_param, dict) else first_name_param
+            last_name = last_name_param.get("name") if isinstance(last_name_param, dict) else last_name_param
+
+            if tour_datetime_param:
+                if isinstance(tour_datetime_param, dict):
+                    try:
+                        tour_date_time = datetime(
+                            int(tour_datetime_param.get("year", 0)),
+                            int(tour_datetime_param.get("month", 1)),
+                            int(tour_datetime_param.get("day", 1)),
+                            int(tour_datetime_param.get("hours", 0)),
+                            int(tour_datetime_param.get("minutes", 0))
+                        )
+                        formatted_datetime = tour_date_time.strftime("%A, %d %B at %I:%M %p")
+                    except:
+                        formatted_datetime = "your selected date/time"
+                else:
+                    formatted_datetime = str(tour_datetime_param)
             else:
                 formatted_datetime = "your selected date/time"
 
