@@ -167,27 +167,42 @@ def webhook():
             }
 
         # --- BookTourLocationIntent ---
-        elif intent_display_name == 'BookTourLocationIntent':
+        if intent_display_name == 'BookTourLocationIntent':
             gym_name = parameters.get("gymname")
+
+            # Normalize gym_name (handle chip texts like "Book your tour at Shoreditch")
+            if gym_name:
+                for key in GYMS.keys():
+                    if key.lower() in gym_name.lower():
+                        gym_name = key
+                        break
+
+            # Default fallback
             if not gym_name or gym_name not in GYMS:
                 gym_name = "Baltimore Wharf"
 
+            # Store normalized values back into session parameters
             parameters['gymname'] = gym_name
             parameters['gym_address'] = GYMS[gym_name]['address']
             parameters['gym_phone'] = GYMS[gym_name]['phone']
 
+            # Generate available time slots
             combined_options = []
             start_date = datetime(2025, 9, 19)
-            num_days = 7
-            time_slots = ["12:30", "13:00", "13:30", "14:00", "14:30",
-                          "15:00", "15:30", "16:00", "16:30", "17:00",
-                          "17:30", "18:00", "18:30", "19:00", "19:30"]
+            num_days = 5
+            time_slots = [
+                "12:30", "13:00", "13:30", "14:00", "14:30",
+                "15:00", "15:30", "16:00", "16:30", "17:00",
+                "17:30", "18:00", "18:30", "19:00", "19:30"
+            ]
 
             for i in range(num_days):
                 date = start_date + timedelta(days=i)
                 for time in time_slots:
                     hour, minute = map(int, time.split(":"))
-                    iso_value = datetime(date.year, date.month, date.day, hour, minute).isoformat()
+                    iso_value = datetime(
+                        date.year, date.month, date.day, hour, minute
+                    ).isoformat()
                     combined_options.append({
                         "text": f"{date.strftime('%a %d %b')}, {time}",
                         "value": iso_value
@@ -207,11 +222,14 @@ def webhook():
             fulfillment_response = {
                 "fulfillmentResponse": {
                     "messages": [
-                        {"text": {"text": [f"Great! You chose {gym_name}. Please select a date and time for your visit."]}},
+                        {"text": {"text": [
+                            f"Great! You chose {gym_name}. Please select a date and time for your visit."
+                        ]}},
                         {"payload": combined_payload}
                     ]
                 }
             }
+
 
         # --- CollectUserDetailsIntent ---
         elif intent_display_name == 'CollectUserDetailsIntent' or parameters.get('first_name'):
