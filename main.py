@@ -272,8 +272,8 @@ def webhook():
                     f"📍 {gym_info['address']}\n"
                     f"📞 {gym_info['phone']}\n\n"
                     f"🕒 Hours: {gym_info['hours']}\n"
+                    
                     f"🗓 Date & Time: {formatted_datetime}\n"
-                    f"🗺 Map: {gym_info['maps']}\n\n"
                     "Looking forward to welcoming you at our gym!\n\n"
                     "💡 Tip: Please arrive 10 minutes early and bring comfortable sportswear."
                 )
@@ -292,7 +292,6 @@ def webhook():
                             <strong>📞 Phone:</strong> {gym_info['phone']}<br>
                             <strong>🕒 Hours:</strong> {gym_info['hours']}<br>
                             <strong>🗓 Date & Time:</strong> {formatted_datetime}<br>
-                            <strong>🗺 Map:</strong> <a href="{gym_info['maps']}">View on Google Maps</a>
                         </p>
                         
                         <h3>✅ Before your visit</h3>
