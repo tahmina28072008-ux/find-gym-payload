@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
-# Gym database with opening hours
+# Gym database with map + hours
 GYMS = {
     "Baltimore Wharf": {
         "address": "14 Baltimore Wharf, London, E14 9FT",
@@ -42,7 +42,7 @@ def send_email(to_email, subject, plain_body, html_body):
     sender_password = os.environ.get("SENDER_PASSWORD")
 
     if not sender_email or not sender_password:
-        logging.error("SENDER_EMAIL or SENDER_PASSWORD not set.")
+        logging.error("SENDER_EMAIL or SENDER_PASSWORD environment variables are not set.")
         return
 
     msg = MIMEMultipart('alternative')
@@ -85,6 +85,8 @@ def send_whatsapp_message(to_number, body):
         return
 
     formatted_to_number = format_phone_number(to_number)
+    logging.info(f"Original number: {to_number}, Formatted number: {formatted_to_number}")
+    
     try:
         client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
         message = client.messages.create(
@@ -92,7 +94,7 @@ def send_whatsapp_message(to_number, body):
             body=body,
             to=f'whatsapp:{formatted_to_number}'
         )
-        logging.info(f"WhatsApp sent: {message.sid}")
+        logging.info(f"WhatsApp message sent to {formatted_to_number}: {message.sid}")
     except TwilioRestException as e:
         logging.error(f"Twilio error: {e}")
     except Exception as e:
@@ -103,96 +105,167 @@ def webhook():
     req = request.get_json(silent=True, force=True)
     fulfillment_response = {
         "fulfillmentResponse": {
-            "messages": [{"text": {"text": ["Sorry, I didn’t catch that. Can you try again?"]}}]
+            "messages": [
+                {"text": {"text": ["I'm sorry, I didn't understand that. Could you please rephrase?"]}}
+            ]
         }
     }
 
     try:
         intent_display_name = req.get("intentInfo", {}).get("displayName")
-        params = req.get("sessionInfo", {}).get("parameters", {})
+        parameters = req.get("sessionInfo", {}).get("parameters", {})
 
-        logging.info(f"Intent: {intent_display_name}, Params: {params}")
+        logging.info(f"Intent: {intent_display_name}")
+        logging.info(f"Parameters: {parameters}")
 
-        if intent_display_name == 'CollectUserDetailsIntent' or params.get('first_name'):
-            first_name = params.get('first_name')
-            last_name = params.get('last_name')
-            phone = params.get('phone_number')
-            email = params.get('email')
-            gymname = params.get('gymname', 'Baltimore Wharf')
+        # --- FindGymIntent ---
+        if intent_display_name == 'FindGymIntent':
+            card_text_message = {
+                "text": {"text": [
+                    "💪 Here are some of our nearest gyms! 🏋️‍♀️\n\n"
+                    "1️⃣ **Baltimore Wharf Fitness & Wellbeing Gym**\n"
+                    "📍 14 Baltimore Wharf, London, E14 9FT\n"
+                    "📞 020 7093 0277\n\n"
+                    "2️⃣ **Shoreditch Fitness & Wellbeing Gym**\n"
+                    "📍 1-6 Bateman's Row, London, EC2A 3HH\n"
+                    "📞 020 7739 6688\n\n"
+                    "3️⃣ **Moorgate Fitness & Wellbeing Gym**\n"
+                    "📍 1, Ropemaker Street, London, EC2Y 9AW\n"
+                    "📞 020 7920 6200\n\n"
+                    "👉 Which one would you like to book a tour at?"
+                ]}
+            }
+            chips_payload = {
+                "richContent": [
+                    [
+                        {
+                            "type": "chips",
+                            "options": [
+                                {"text": "Book your tour at Baltimore Wharf", "value": "Baltimore Wharf"},
+                                {"text": "Book your tour at Shoreditch", "value": "Shoreditch"},
+                                {"text": "Book your tour at Moorgate", "value": "Moorgate"}
+                            ]
+                        }
+                    ]
+                ]
+            }
+            fulfillment_response = {
+                "fulfillmentResponse": {
+                    "messages": [card_text_message, {"payload": chips_payload}]
+                }
+            }
+
+        # --- BookTourLocationIntent ---
+        if intent_display_name == 'BookTourLocationIntent':
+            gym_name = parameters.get("gymname")
+            if gym_name:
+                for key in GYMS.keys():
+                    if key.lower() in gym_name.lower():
+                        gym_name = key
+                        break
+            if not gym_name or gym_name not in GYMS:
+                gym_name = "Baltimore Wharf"
+
+            # Add gym info into parameters
+            gym_info = GYMS[gym_name]
+            parameters['gymname'] = gym_name
+            parameters['gym_address'] = gym_info['address']
+            parameters['gym_phone'] = gym_info['phone']
+            parameters['gym_hours'] = gym_info['hours']
+            parameters['gym_maps'] = gym_info['maps']
+
+            fulfillment_response = {
+                "fulfillmentResponse": {
+                    "messages": [
+                        {"text": {"text": [
+                            f"Great! You chose {gym_name}. Please select a date and time for your visit."
+                        ]}}
+                    ]
+                }
+            }
+
+        # --- CollectUserDetailsIntent ---
+        elif intent_display_name == 'CollectUserDetailsIntent' or parameters.get('first_name'):
+            first_name = parameters.get('first_name')
+            last_name = parameters.get('last_name')
+            phone = parameters.get('phone_number')
+            email = parameters.get('email')
+            gymname = parameters.get('gymname', 'Baltimore Wharf')
             gym_info = GYMS[gymname]
 
-            # Format date & time
-            formatted_datetime = "your selected date/time"
-            tour_datetime = params.get('tour_datetime')
-            if isinstance(tour_datetime, dict):
+            tour_datetime_param = parameters.get('tour_datetime')
+            if tour_datetime_param and isinstance(tour_datetime_param, dict):
                 try:
-                    dt = datetime(
-                        int(tour_datetime.get("year", 0)),
-                        int(tour_datetime.get("month", 1)),
-                        int(tour_datetime.get("day", 1)),
-                        int(tour_datetime.get("hours", 0)),
-                        int(tour_datetime.get("minutes", 0))
+                    tour_date_time = datetime(
+                        int(tour_datetime_param.get("year", 0)),
+                        int(tour_datetime_param.get("month", 1)),
+                        int(tour_datetime_param.get("day", 1)),
+                        int(tour_datetime_param.get("hours", 0)),
+                        int(tour_datetime_param.get("minutes", 0))
                     )
-                    formatted_datetime = dt.strftime("%A, %d %B at %I:%M %p")
+                    formatted_datetime = tour_date_time.strftime("%A, %d %B at %I:%M %p")
                 except:
-                    pass
+                    formatted_datetime = "your selected date/time"
+            else:
+                formatted_datetime = "your selected date/time"
 
             if all([first_name, last_name, phone, email]):
-                # --- Chat confirmation ---
-                chat_message = (
-                    f"🎉 Great, {first_name}! Your gym tour is confirmed.\n\n"
+                # Confirmation message (chat)
+                confirmation_message_plain = (
+                    f"🎉 Brilliant, {first_name}! Your gym tour is now confirmed.\n\n"
                     f"🏋️‍♂️ {gymname}\n"
                     f"📍 {gym_info['address']}\n"
                     f"📞 {gym_info['phone']}\n"
-                    f"🗓 {formatted_datetime}\n"
-                    f"⏰ Opening Hours: {gym_info['hours']}\n\n"
+                    f"🕒 Hours: {gym_info['hours']}\n"
+                    f"🗓 Date & Time: {formatted_datetime}\n"
                     f"🗺 Map: {gym_info['maps']}\n\n"
                     "💡 Tip: Please arrive 10 minutes early and bring comfortable sportswear."
                 )
 
-                # --- Email confirmation ---
-                email_html = f"""
+                # Email confirmation
+                confirmation_message_html = f"""
                 <html>
                 <body>
-                    <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto;">
-                        <h2 style="color:#007BFF;">Gym Tour Confirmation</h2>
-                        <p>🎉 Great, <b>{first_name}</b>! Your gym tour has been confirmed.</p>
-                        <p>
-                            <b>🏋️‍♂️ Gym:</b> {gymname}<br>
-                            <b>📍 Address:</b> {gym_info['address']}<br>
-                            <b>📞 Phone:</b> {gym_info['phone']}<br>
-                            <b>🗓 Date & Time:</b> {formatted_datetime}<br>
-                            <b>⏰ Opening Hours:</b> {gym_info['hours']}<br>
-                            <b>🗺 Map:</b> <a href="{gym_info['maps']}">View on Google Maps</a>
-                        </p>
-                        <h3>✅ Before your visit</h3>
-                        <ul>
-                            <li>Arrive at least 10 minutes early.</li>
-                            <li>Wear comfortable sportswear and trainers.</li>
-                            <li>Bring a water bottle and towel.</li>
-                        </ul>
-                        <p>Looking forward to welcoming you!</p>
-                    </div>
+                    <h2>🎉 Gym Tour Confirmation</h2>
+                    <p>Hi <b>{first_name}</b>, your gym tour is confirmed!</p>
+                    <p>
+                        🏋️‍♂️ <b>Gym:</b> {gymname}<br>
+                        📍 <b>Address:</b> {gym_info['address']}<br>
+                        📞 <b>Phone:</b> {gym_info['phone']}<br>
+                        🕒 <b>Opening Hours:</b> {gym_info['hours']}<br>
+                        🗓 <b>Date & Time:</b> {formatted_datetime}<br>
+                        🗺 <b>Map:</b> <a href="{gym_info['maps']}">View on Google Maps</a>
+                    </p>
+                    <h3>✅ Before your visit</h3>
+                    <ul>
+                        <li>Arrive 10 minutes early</li>
+                        <li>Wear comfortable sportswear</li>
+                        <li>Bring a water bottle & towel</li>
+                    </ul>
                 </body>
                 </html>
                 """
-                send_email(email, "Your Gym Tour Confirmation", chat_message, email_html)
+                send_email(email, "Your Gym Tour Booking Confirmation", confirmation_message_plain, confirmation_message_html)
 
-                # --- WhatsApp confirmation ---
+                # WhatsApp confirmation
                 whatsapp_body = (
-                    f"Hi {first_name}, your gym tour at {gymname} is confirmed! 🎉\n\n"
+                    f"Hi {first_name}, your gym tour at {gymname} is confirmed 🎉\n\n"
                     f"📍 {gym_info['address']}\n"
                     f"📞 {gym_info['phone']}\n"
+                    f"🕒 {gym_info['hours']}\n"
                     f"🗓 {formatted_datetime}\n"
-                    f"⏰ Opening Hours: {gym_info['hours']}\n"
-                    f"🗺 Map: {gym_info['maps']}\n\n"
-                    "✅ Please:\n- Arrive 10 minutes early\n- Wear sportswear\n- Bring water & a towel\n\n"
-                    "Looking forward to welcoming you!"
+                    f"🗺 {gym_info['maps']}\n\n"
+                    "✅ Tips:\n"
+                    "- Arrive 10 min early\n"
+                    "- Wear sportswear\n"
+                    "- Bring water & towel"
                 )
                 send_whatsapp_message(phone, whatsapp_body)
 
                 fulfillment_response = {
-                    "fulfillmentResponse": {"messages": [{"text": {"text": [chat_message]}}]}
+                    "fulfillmentResponse": {
+                        "messages": [{"text": {"text": [confirmation_message_plain]}}]
+                    }
                 }
 
     except Exception as e:
