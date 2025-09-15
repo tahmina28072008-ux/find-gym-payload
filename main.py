@@ -173,13 +173,46 @@ def webhook():
             parameters['gym_phone'] = gym_info['phone']
             parameters['gym_hours'] = gym_info['hours']
             parameters['gym_maps'] = gym_info['maps']
+            # Generate available time slots
+            combined_options = []
+            start_date = datetime(2025, 9, 19)
+            num_days = 5
+            time_slots = [
+                "12:30", "13:00", "13:30", "14:00", "14:30",
+                "15:00", "15:30", "16:00", "16:30", "17:00",
+                "17:30", "18:00", "18:30", "19:00", "19:30"
+            ]
+
+            for i in range(num_days):
+                date = start_date + timedelta(days=i)
+                for time in time_slots:
+                    hour, minute = map(int, time.split(":"))
+                    iso_value = datetime(
+                        date.year, date.month, date.day, hour, minute
+                    ).isoformat()
+                    combined_options.append({
+                        "text": f"{date.strftime('%a %d %b')}, {time}",
+                        "value": iso_value
+                    })
+
+            combined_payload = {
+                "richContent": [
+                    [
+                        {
+                            "type": "chips",
+                            "options": combined_options
+                        }
+                    ]
+                ]
+            }
 
             fulfillment_response = {
                 "fulfillmentResponse": {
                     "messages": [
                         {"text": {"text": [
                             f"Great! You chose {gym_name}. Please select a date and time for your visit."
-                        ]}}
+                        ]}},
+                        {"payload": combined_payload}
                     ]
                 }
             }
