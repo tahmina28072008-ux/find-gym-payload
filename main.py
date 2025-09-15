@@ -177,7 +177,7 @@ def webhook():
             parameters['gym_phone'] = GYMS[gym_name]['phone']
 
             combined_options = []
-            start_date = datetime(2025, 9, 13)
+            start_date = datetime(2025, 9, 19)
             num_days = 7
             time_slots = ["12:30", "13:00", "13:30", "14:00", "14:30",
                           "15:00", "15:30", "16:00", "16:30", "17:00",
