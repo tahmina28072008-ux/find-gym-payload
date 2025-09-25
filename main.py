@@ -365,8 +365,7 @@ def webhook():
                     formatted_date_time = tour_date_time.strftime("%A, %d %B at %I:%M %p")
                     confirmation_message = (
                         f"Thank you! Your tour booking is in progress for {formatted_date_time}. "
-                        "To confirm the booking I need more details about you.
-                        Lovely! Could you tell me your first name so we know how to address you?"
+                        "To confirm the booking I need more details about you. Lovely! Could you tell me your first name so we know how to address you?"
                     )
                     fulfillment_response = {
                         "fulfillmentResponse": {
