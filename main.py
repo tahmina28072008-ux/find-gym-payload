@@ -189,7 +189,7 @@ def webhook():
 
             # --- Generate available time slots (added) ---
             combined_options = []
-            start_date = datetime(2025, 9, 29)
+            start_date = datetime(2025, 9, 29) 
             num_days = 5
             time_slots = [
                 "12:30", "13:00", "13:30", "14:00", "14:30",
